@@ -1,0 +1,5 @@
+gunicorn
+firebase_admin
+flask
+python-dotenv
+pyjwt
