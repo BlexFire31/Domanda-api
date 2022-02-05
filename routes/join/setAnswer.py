@@ -23,7 +23,7 @@ def setAnswer():
         ####################-------------MULTI THREADING VERIFICATIONS-------------####################
 
         verifications = {
-            "isNotFinished": None,
+            "isQuestionActive": None,
             "hasJoined": None,
             "hasNotAttempted": None
         }
@@ -52,33 +52,33 @@ def setAnswer():
         )  # name is in Members collection
 
         @copy_current_request_context
-        def isNotFinished(state=[]):
+        def isQuestionActive(state=[]):
 
             state.append(
                 quizRef
                 .document("Questions")
-                .collection(request.form.get("question").strip())
-                .document("QuestionData")
                 .get()
             )
-            if not state[0].exists:
+            if state[0].exists != True:
                 verifications.update({
-                    "isNotFinished":
-                    (False, "This Quiz/Question does not exist")
+                    "isQuestionActive":
+                    (False, "This Quiz does not exist")
                 })
-            elif state[0].to_dict().get("finished") == True:
+            # question user wants to attempt is not active
+            elif state[0].to_dict().get("activeQuestion") not in (int(request.form.get("question")), -1):
                 verifications.update({
-                    "isNotFinished":
+                    "isQuestionActive":
                     (False, "You cannot answer now")
                 })
+            # we don't need to check whether this question exists
             else:
                 verifications.update({
-                    "isNotFinished":
+                    "isQuestionActive":
                     (True, "")
                 })
 
         runAsyncTask(
-            isNotFinished
+            isQuestionActive
         )  # question has not finished
 
         @copy_current_request_context
@@ -104,12 +104,15 @@ def setAnswer():
 
         # wait till threads have completed, while waiting check for any failed cases, if failed cases are found, alert user immediately
         while None in list(verifications.values()):
-            values = verifications.values()
-            for case in values:
-                if case == None:
-                    continue
-                if case[0] == False:
-                    return {"success": False, "error": case[1]}
+            try:
+                values = list(verifications.values())
+                for case in values:
+                    if case == None:
+                        continue
+                    if case[0] == False:
+                        return {"success": False, "error": case[1]}
+            except:  # dictionary changed during iteration
+                continue
 
         for case in verifications.values():
             if case[0] == False:

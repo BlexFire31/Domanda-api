@@ -73,13 +73,15 @@ def addMember():
 
         # wait till threads have completed, while waiting check for any failed cases, if failed cases are found, alert user immediately
         while None in list(verifications.values()):
-            values = verifications.values()
-            for case in values:
-                if case == None:
-                    continue
-                if case[0] == False:
-                    return {"success": False, "error": case[1]}
-
+            try:
+                values = list(verifications.values())
+                for case in values:
+                    if case == None:
+                        continue
+                    if case[0] == False:
+                        return {"success": False, "error": case[1]}
+            except:  # dictionary changed size during iteration
+                continue
         for case in verifications.values():
             if case[0] == False:
                 return {"success": False, "error": case[1]}

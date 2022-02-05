@@ -53,8 +53,6 @@ def getCorrectAnswer():
             state.append(
                 quizRef
                 .document("Questions")
-                .collection(request.form.get("question").strip())
-                .document("QuestionData")
                 .get()
             )
             if state[0].exists == False:
@@ -62,7 +60,7 @@ def getCorrectAnswer():
                     "isFinished":
                     (False, "This Quiz/Question does not exist")
                 })
-            elif state[0].to_dict().get("finished") != True:
+            elif state[0].to_dict().get("activeQuestion") != "0":
                 verifications.update({
                     "isFinished":
                     (False, "You cannot get the correct answer now ;P ")
@@ -97,13 +95,15 @@ def getCorrectAnswer():
 
         # wait till threads have completed, while waiting check for any failed cases, if failed cases are found, alert user immediately
         while None in list(verifications.values()):
-            values = verifications.values()
-            for case in values:
-                if case == None:
-                    continue
-                if case[0] == False:
-                    return {"success": False, "error": case[1]}
-
+            try:
+                values = list(verifications.values())
+                for case in values:
+                    if case == None:
+                        continue
+                    if case[0] == False:
+                        return {"success": False, "error": case[1]}
+            except:  # dictionary value changed during iteration
+                continue
         for case in verifications.values():
             if case[0] == False:
                 return {"success": False, "error": case[1]}

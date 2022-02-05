@@ -1,9 +1,9 @@
 from flask import Blueprint
-from routes.host.getStatus import api as getStatusApi
-from routes.host.hostAll import api as hostAllApi
-from routes.host.hostSingle import api as hostSingleApi
+from routes.host.finish import api as finishApi
+from routes.host.startAll import api as startAllApi
+from routes.host.startSingle import api as hostSingleApi
 
 app = Blueprint("ApiHost", __name__)
-app.register_blueprint(getStatusApi)
-app.register_blueprint(hostAllApi)
+app.register_blueprint(finishApi)
+app.register_blueprint(startAllApi)
 app.register_blueprint(hostSingleApi)

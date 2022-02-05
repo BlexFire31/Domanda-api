@@ -2,15 +2,15 @@ from utils.db import database
 from flask import Blueprint, request, copy_current_request_context
 from utils.functions import runAsyncTask, isInt, verify_id_token
 
-api = Blueprint("hostAll", __name__)
+api = Blueprint("startSingle", __name__)
 
 
-@api.route("/all", methods=["POST"])
-def hostAll():
+@api.route("/start-single", methods=["POST"])
+def hostSingle():
 
-    if(
+    if (
         isInt(request.form.get("code")) and
-        request.form.get("method") in ("START", "FINISH")
+        isInt(request.form.get("question"))
     ):  # Checks for Required Parameters
 
         quizRef = database.collection(request.form.get("code").strip())
@@ -24,7 +24,6 @@ def hostAll():
 
         @copy_current_request_context
         def isOwner(state=[]):
-
             state.append(
                 quizRef
                 .document("Host")
@@ -64,13 +63,15 @@ def hostAll():
         )  # get activeQuestion & questionsLength data
         # wait till threads have completed, while waiting check for any failed cases, if failed cases are found, alert user immediately
         while None in list(verifications.values()):
-            values = verifications.values()
-            for case in values:
-                if case == None:
-                    continue
-                if case[0] == False:
-                    return {"success": False, "error": case[1]}
-
+            try:
+                values = list(verifications.values())
+                for case in values:
+                    if case == None:
+                        continue
+                    if case[0] == False:
+                        return {"success": False, "error": case[1]}
+            except:  # dictionary size changed during iteration
+                continue
         for case in verifications.values():
             if case[0] == False:
                 return {"success": False, "error": case[1]}
@@ -78,44 +79,22 @@ def hostAll():
         questionsLength = int(verifications.get(
             "activeQuestion")[1].get("questionsLength"))
 
-        if(request.form.get("method") == "START"):
-            for question in range(1, questionsLength+1):
-                runAsyncTask(
-                    quizRef
-                    .document("Questions")
-                    .collection(str(question))
-                    .document("QuestionData")
-                    .update,
-                    {"finished": False, "started": True}
-                )
+        # This question does not exist
+        if int(request.form.get("question")) not in range(1, questionsLength+1):
+            return {"success": False, "error": "This question does not exist"}
 
-            runAsyncTask(
-                quizRef
-                .document("Questions")
-                .update,
-                # -1 integer means all questions are started
-                {"activeQuestion": -1}
-            )
-
-        elif(request.form.get("method") == "FINISH"):
-            for question in range(1, questionsLength+1):
-                runAsyncTask(
-                    quizRef
-                    .document("Questions")
-                    .collection(str(question))
-                    .document("QuestionData")
-                    .update,
-                    {"finished": True, "started": True}
-                )
-
-            runAsyncTask(
-                quizRef
-                .document("Questions")
-                .update,
-                # 0 string means all questions are started
-                {"activeQuestion": "0"}
-            )
+        runAsyncTask(
+            database
+            .collection(request.form.get("code").strip())
+            .document("Questions")
+            .update,
+            {
+                # if the type is integer, that means it is active, if it is string, it is inactive
+                "activeQuestion": int(request.form.get("question"))
+            }
+        )
 
         return {"success": True, }
 
-    return {"success": False, "error": "Parameters passed are incorrect"}
+    else:
+        return {"success": False, "error": "Parameters passed are incorrect"}
