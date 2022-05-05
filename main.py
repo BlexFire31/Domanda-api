@@ -1,21 +1,16 @@
-from flask import Flask
-from routes import app as routes
-from secrets import token_hex
-import os
-from dotenv import load_dotenv
+from flask import jsonify
+from apps.flask_app import app
+from apps.socket_app import ws
+from apps.mongo_client import client
+from time import sleep
 
-app = Flask(
-    __name__,
-)
 
-app.register_blueprint(
-    routes
-)
-load_dotenv()  # Load .env file from local system (for development)
-app.secret_key = token_hex()
-app.config["WEB_CONFIG"] = os.environ["WEB_CONFIG"]
+@ws.route("/<int:arg>")
+def handler(ws, arg):
+    print(type(arg))
+    while True:
+        ws.send(arg)
+        sleep(50)
 
-@app.after_request
-def on_request(response):
-    response.headers["Access-Control-Allow-Origin"]="*";
-    return response
+
+app.run(port=8000, host="0.0.0.0")
